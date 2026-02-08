@@ -1,8 +1,6 @@
 voxelFuel
 ================
 
-# voxelFuel
-
 `voxelFuel` provides tools for downscaling 2D fuel biomass maps into 3D
 voxel representations using high-resolution LiDAR data. This package is
 intended for researchers and practitioners working with wildfire fuel
