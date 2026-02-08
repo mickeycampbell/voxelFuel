@@ -1,0 +1,30 @@
+Package: voxelFuel
+Title: 3D Voxel-Based Downscaling of 2D Fuel Maps with Lidar Data
+Version: 0.1.0
+Authors@R: 
+    person(
+      given = "Mickey",
+      family = "Campbell",
+      email = "mickey.campbell@ess.utah.edu",
+      role = c("aut", "cre")
+    )
+Description: 
+    This package is designed to take 2D maps of fuel biomass (probably generated
+    at a moderate resolution, e.g., 10-30m) and apportion per-pixel biomass to
+    finer-scale (e.g., 1m) voxels. This is done using lidar point cloud data
+    (airborne, UAS, or terrestrial), and assumes that the density of lidar
+    points in a given voxel corresponds to the proportion of fuel in that voxel.
+    Given the canopy occlusion that occurs with airborne lidar data, this 
+    package also allows for the application of Beer's law to boost understory
+    biomass estimation. It also allows for rasterization of the final voxel-
+    level estimates, for visualization purposes.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Imports:
+    terra,
+    lidR,
+    data.table,
+    stats,
+    progress
