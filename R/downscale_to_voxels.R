@@ -96,8 +96,8 @@ downscale_to_voxels <- function(
     vm,
     terra::extract(
       fuel_rast,
-      base::as.matrix(vm[, list(X, Y)]),
-      cells = TRUE
+      base::as.matrix(vm[, c("X", "Y"), with = F]),
+      cells = T
     )
   )
 
