@@ -70,5 +70,4 @@ vs <- rasterize_voxel_stack(
 )
 }
 
-#' @export
 }

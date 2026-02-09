@@ -48,7 +48,7 @@
 #' )
 #' }
 #'
-#' #' @export
+#' @export
 rasterize_voxel_stack <- function(
     vm,
     fuel_rast,
