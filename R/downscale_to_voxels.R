@@ -9,6 +9,8 @@
 #' biomass allocation to lower canopy voxels based on the fraction of points above
 #' each voxel.
 #'
+#' @import data.table
+#'
 #' @param las A `LAS` object containing normalized lidar point cloud data.
 #' @param fuel_rast A single-layer `SpatRaster` containing 2D fuel biomass values.
 #' @param voxel_res Numeric. Vertical and horizontal resolution of voxels
@@ -79,42 +81,38 @@ downscale_to_voxels <- function(
     max_adj = 5
 ) {
 
-  # check to make sure occlusion is one of the two options
-  occlusion <- base::match.arg(occlusion)
+  # check inputs
+  occlusion <- match.arg(occlusion)
+  stopifnot(inherits(las, "LAS"))
+  stopifnot(inherits(fuel_rast, "SpatRaster"))
 
-  # check input object types
-  base::stopifnot(inherits(las, "LAS"))
-  base::stopifnot(inherits(fuel_rast, "SpatRaster"))
-
-  # voxelize lidar data with number of points
+  # voxelize lidar
   vm <- lidR::voxel_metrics(las, ~length(Z), res = voxel_res)
   data.table::setnames(vm, "V1", "n")
 
-  # get biomass values and cell ids for each voxel
+  # extract biomass values
   names(fuel_rast) <- "bio"
-  vm <- cbind(
-    vm,
-    terra::extract(
-      fuel_rast,
-      base::as.matrix(vm[, c("X", "Y"), with = F]),
-      cells = T
-    )
-  )
+  extracted <- terra::extract(
+    fuel_rast,
+    as.matrix(vm[, .(X, Y)]),
+    cells = TRUE
+  ) |> data.table::as.data.table()
+  vm <- cbind(vm, extracted)
 
   # drop NA biomass cells
-  vm <- vm[!base::is.na(vm[["bio"]])]
+  vm <- vm[!is.na(bio)]
 
-  # get proportion of points per voxel (per biomass pixel)
-  vm[, prop_all := n / sum(n), by = "cell"]
+  # proportion of points per voxel (per raster cell)
+  vm[, prop_all := n / sum(n), by = .(cell)]
 
-  # filter voxels to canopy height range
-  vm <- vm[vm[["Z"]] >= can_min_z & vm[["Z"]] <= can_max_z]
+  # filter canopy height
+  vm <- vm[Z >= can_min_z & Z <= can_max_z]
 
   # renormalize within canopy
-  vm[, prop_can := prop_all / sum(prop_all), by = "cell"]
-  vm[base::is.na(vm[["prop_can"]]), prop_can := 0]
+  vm[, prop_can := prop_all / sum(prop_all), by = .(cell)]
+  vm[is.na(prop_can), prop_can := 0]
 
-  # get raw voxelized biomass
+  # raw voxel biomass
   vm[, bio_vox_raw := bio * prop_can]
 
   # sort for cumulative calculations
@@ -123,35 +121,27 @@ downscale_to_voxels <- function(
   # optional occlusion correction
   if (occlusion == "beer") {
 
-    # get fraction of points above each voxel
-    vm[, prop_above := rev(cumsum(rev(prop_all))) - prop_all, by = "cell"]
-
-    # calculate Beer-Lambert adjustment factor
-    vm[, adj_factor := base::pmin(base::exp(beer_k * prop_above), max_adj)]
-
-    # apply to raw biomass (will no longer sum to original pixel value)
+    vm[, prop_above := rev(cumsum(rev(prop_all))) - prop_all, by = .(cell)]
+    vm[, adj_factor := pmin(exp(beer_k * prop_above), max_adj)]
     vm[, bio_vox_temp := bio_vox_raw * adj_factor]
 
   } else {
 
-    # if no correction, just copy over raw biomass
     vm[, bio_vox_temp := bio_vox_raw]
 
   }
 
-  # reproportion to make sure it sums up to original pixel value
-  vm[, bio_vox := bio_vox_temp * (bio / sum(bio_vox_temp)), by = "cell"]
+  # reproportion to match original raster cell value
+  vm[, bio_vox := bio_vox_temp * (bio / sum(bio_vox_temp)), by = .(cell)]
 
-  # check to see if it does, indeed, sum back up correctly
-  chk <- vm[, list(err = base::abs(sum(bio_vox) - bio[1])), by = "cell"]
-  chk <- chk[!base::is.na(chk[["err"]])]  # drop any cells where bio[1] is NA
-  if (base::any(chk[["err"]] > 1e-6)) {
+  # sanity check
+  chk <- vm[, .(err = abs(sum(bio_vox) - bio[1])), by = .(cell)]
+  if (any(chk$err > 1e-6, na.rm = TRUE)) {
     warning("One or more cells does not aggregate back up to the original value")
   }
 
-  # clean up columns
+  # retain only desired columns
   vm <- vm[, list(X, Y, Z, n, cell, bio, bio_vox)]
 
-  # return final voxel data.table
   return(vm[])
 }

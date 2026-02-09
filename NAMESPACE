@@ -3,3 +3,4 @@
 export(align_and_mask_fuel_raster)
 export(build_voxel_mask)
 export(downscale_to_voxels)
+import(data.table)
