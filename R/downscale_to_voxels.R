@@ -102,17 +102,17 @@ downscale_to_voxels <- function(
   )
 
   # drop NA biomass cells
-  vm <- vm[!base::is.na(bio)]
+  vm <- vm[!base::is.na(vm[["bio"]])]
 
   # get proportion of points per voxel (per biomass pixel)
-  vm[, prop_all := n / sum(n), by = cell]
+  vm[, prop_all := n / sum(n), by = "cell"]
 
   # filter voxels to canopy height range
-  vm <- vm[Z >= can_min_z & Z <= can_max_z]
+  vm <- vm[vm[["Z"]] >= can_min_z & vm[["Z"]] <= can_max_z]
 
   # renormalize within canopy
-  vm[, prop_can := prop_all / sum(prop_all), by = cell]
-  vm[base::is.na(prop_can), prop_can := 0]
+  vm[, prop_can := prop_all / sum(prop_all), by = "cell"]
+  vm[base::is.na(vm[["prop_can"]]), prop_can := 0]
 
   # get raw voxelized biomass
   vm[, bio_vox_raw := bio * prop_can]
@@ -124,7 +124,7 @@ downscale_to_voxels <- function(
   if (occlusion == "beer") {
 
     # get fraction of points above each voxel
-    vm[, prop_above := rev(cumsum(rev(prop_all))) - prop_all, by = cell]
+    vm[, prop_above := rev(cumsum(rev(prop_all))) - prop_all, by = "cell"]
 
     # calculate Beer-Lambert adjustment factor
     vm[, adj_factor := base::pmin(base::exp(beer_k * prop_above), max_adj)]
@@ -140,12 +140,12 @@ downscale_to_voxels <- function(
   }
 
   # reproportion to make sure it sums up to original pixel value
-  vm[, bio_vox := bio_vox_temp * (bio / sum(bio_vox_temp)), by = cell]
+  vm[, bio_vox := bio_vox_temp * (bio / sum(bio_vox_temp)), by = "cell"]
 
   # check to see if it does, indeed, sum back up correctly
-  chk <- vm[, list(err = base::abs(sum(bio_vox) - bio[1])), by = cell]
-  chk <- chk[!base::is.na(err)]  # drop any cells where bio[1] is NA
-  if (base::any(chk$err > 1e-6)) {
+  chk <- vm[, list(err = base::abs(sum(bio_vox) - bio[1])), by = "cell"]
+  chk <- chk[!base::is.na(chk[["err"]])]  # drop any cells where bio[1] is NA
+  if (base::any(chk[["err"]] > 1e-6)) {
     warning("One or more cells does not aggregate back up to the original value")
   }
 
