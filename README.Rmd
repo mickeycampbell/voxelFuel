@@ -24,12 +24,12 @@ Example LiDAR and fuel raster data are included in the package:
 library(voxelFuel)
 
 las_file <- system.file("extdata/lidar.laz", package = "voxelFuel")
-fuel_file <- system.file("extdata/fb.tif", package = "voxelFuel")
+fuel_file <- system.file("extdata/fuel_rast.tif", package = "voxelFuel")
 ```
 
 ---
 
-### Quick Start / Minimal Example
+### Example Workflow
 
 This example demonstrates the core workflow:
 
@@ -43,13 +43,13 @@ library(voxelFuel)
 las <- readLAS(las_file)
 fuel_rast <- rast(fuel_file)
 
-# --- Build voxel eligibility mask ---
+# build voxel processing mask
 voxel_mask <- build_voxel_mask(las)
 
-# --- Align fuel raster to voxel mask ---
+# align fuel raster to voxel mask
 fuel_rast <- align_and_mask_fuel_raster(fuel_rast, voxel_mask)
 
-# --- Downscale 2D fuel to 3D voxels ---
+# downscale 2D fuel to 3D voxels
 fuel_vox <- downscale_to_voxels(
   las = las,
   fuel_rast = fuel_rast,
@@ -59,7 +59,7 @@ fuel_vox <- downscale_to_voxels(
   occlusion = "none"
 )
 
-# --- Rasterize voxel stack ---
+# rasterize voxel stack
 vs <- rasterize_voxel_stack(
   vm = fuel_vox,
   fuel_rast = fuel_rast,
@@ -67,7 +67,7 @@ vs <- rasterize_voxel_stack(
   base_name = "example"
 )
 
-# Inspect outputs
+# inspect outputs
 vs$stack       # 3D voxel stack (all layers)
 vs$stack_sum   # sum across vertical layers
 vs$stack_agg   # aggregated back to original raster resolution

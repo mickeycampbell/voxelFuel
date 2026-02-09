@@ -96,7 +96,7 @@ downscale_to_voxels <- function(
     vm,
     terra::extract(
       fuel_rast,
-      base::as.matrix(vm[, .(X, Y)]),
+      base::as.matrix(vm[, list(X, Y)]),
       cells = TRUE
     )
   )
@@ -143,14 +143,14 @@ downscale_to_voxels <- function(
   vm[, bio_vox := bio_vox_temp * (bio / sum(bio_vox_temp)), by = cell]
 
   # check to see if it does, indeed, sum back up correctly
-  chk <- vm[, .(err = base::abs(sum(bio_vox) - bio[1])), by = cell]
+  chk <- vm[, list(err = base::abs(sum(bio_vox) - bio[1])), by = cell]
   chk <- chk[!base::is.na(err)]  # drop any cells where bio[1] is NA
   if (base::any(chk$err > 1e-6)) {
     warning("One or more cells does not aggregate back up to the original value")
   }
 
   # clean up columns
-  vm <- vm[, .(X, Y, Z, n, cell, bio, bio_vox)]
+  vm <- vm[, list(X, Y, Z, n, cell, bio, bio_vox)]
 
   # return final voxel data.table
   return(vm[])
