@@ -12,7 +12,11 @@ downscale_to_voxels(
   can_max_z = 50,
   occlusion = c("none", "beer"),
   beer_k = 0.5,
-  max_adj = 5
+  max_adj = 5,
+  export = F,
+  file_format = c("laz", "csv", "parquet"),
+  out_dir,
+  base_name
 )
 }
 \arguments{
@@ -33,10 +37,23 @@ allocating biomass.}
 \code{"none"} (default) or \code{"beer"}.}
 
 \item{beer_k}{Numeric. Beer–Lambert attenuation coefficient controlling the
-strength of the occlusion correction when \code{occlusion = "beer"}.}
+strength of the occlusion correction when \code{occlusion == "beer"}.}
 
 \item{max_adj}{Numeric. Maximum allowed adjustment factor applied to any voxel
 during occlusion correction.}
+
+\item{export}{Boolean. Defines whether or not you would like to save the
+resulting voxel array to a file.}
+
+\item{file_format}{Character. If \code{export == TRUE}, there are three different
+file formats you can choose from (\code{laz}, \code{csv}, or \code{parquet}).}
+
+\item{out_dir}{Character. If \code{export == TRUE}, the directory where you would
+like to save the exported file.}
+
+\item{base_name}{Character. If \code{export == TRUE}, the base name (file name
+without extension) of the output file you intend to save. The file
+extension will be automatically assigned based on \code{file_format}.}
 }
 \value{
 A \code{data.table} where each row represents a voxel and includes:

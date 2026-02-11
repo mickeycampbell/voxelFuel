@@ -22,9 +22,18 @@
 #' @param occlusion Character. Occlusion correction method to apply. One of
 #'   `"none"` (default) or `"beer"`.
 #' @param beer_k Numeric. Beer–Lambert attenuation coefficient controlling the
-#'   strength of the occlusion correction when `occlusion = "beer"`.
+#'   strength of the occlusion correction when `occlusion == "beer"`.
 #' @param max_adj Numeric. Maximum allowed adjustment factor applied to any voxel
 #'   during occlusion correction.
+#' @param export Boolean. Defines whether or not you would like to save the
+#'   resulting voxel array to a file.
+#' @param file_format Character. If `export == TRUE`, there are three different
+#'   file formats you can choose from (`laz`, `csv`, or `parquet`).
+#' @param out_dir Character. If `export == TRUE`, the directory where you would
+#'   like to save the exported file.
+#' @param base_name Character. If `export == TRUE`, the base name (file name
+#'   without extension) of the output file you intend to save. The file
+#'   extension will be automatically assigned based on `file_format`.
 #'
 #' @return
 #' A `data.table` where each row represents a voxel and includes:
@@ -78,11 +87,16 @@ downscale_to_voxels <- function(
     can_max_z = 50,
     occlusion = c("none", "beer"),
     beer_k = 0.5,
-    max_adj = 5
+    max_adj = 5,
+    export = F,
+    file_format = c("laz", "csv", "parquet"),
+    out_dir,
+    base_name
 ) {
 
   # check inputs
   occlusion <- match.arg(occlusion)
+  file_format <- match.arg(file_format)
   stopifnot(inherits(las, "LAS"))
   stopifnot(inherits(fuel_rast, "SpatRaster"))
 
@@ -143,5 +157,56 @@ downscale_to_voxels <- function(
   # retain only desired columns
   vm <- vm[, list(X, Y, Z, n, cell, bio, bio_vox)]
 
+  # optionally, export to file
+  if (export){
+
+    # as a laz file
+    if (file_format == "laz"){
+
+      # coerce to LAS object
+      vm_las <- lidR::LAS(
+        data = vm,
+        crs = lidR::st_crs(las)
+      )
+
+      # add custom attributes
+      vm_las <- lidR::add_lasattribute(vm_las, vm$n, "n", "Point count")
+      vm_las <- lidR::add_lasattribute(vm_las, vm$cell, "cell", "Raster cell ID")
+      vm_las <- lidR::add_lasattribute(vm_las, vm$bio, "bio", "Original biomass")
+      vm_las <- lidR::add_lasattribute(vm_las, vm$bio_vox, "bio_vox", "Voxel biomass")
+
+      # define output name and save
+      out_file <- file.path(out_dir, paste0(base_name, ".laz"))
+      lidR::writeLAS(vm_las, out_file)
+
+    }
+
+    # as a csv file
+    else if (file_format == "csv"){
+
+      # define output name and save
+      out_file <- file.path(out_dir, paste0(base_name, ".csv"))
+      data.table::fwrite(vm, out_file)
+
+    }
+
+    # as a parquet file
+    else if (file_format == "parquet"){
+
+      # define output name and save
+      out_file <- file.path(out_dir, paste0(base_name, ".parquet"))
+      nanoparquet::write_parquet(vm, file = out_file)
+
+    }
+
+    # not one of the three options
+    else {
+      stop("file_format should be one of 'csv', 'laz', or 'parquet'")
+    }
+
+  }
+
+  # return the data.table
   return(vm[])
+
 }

@@ -27,4 +27,5 @@ Imports:
     lidR,
     data.table,
     stats,
-    progress
+    progress,
+    nanoparquet
